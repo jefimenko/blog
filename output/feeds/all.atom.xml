@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>tldr; mode</title><link href="https://jefimenko.github.io/" rel="alternate"></link><link href="https://jefimenko.github.io/feeds/all.atom.xml" rel="self"></link><id>https://jefimenko.github.io/</id><updated>2017-11-17T00:00:00-08:00</updated><entry><title>Setting Up a Spark 2.2.0 Cluster</title><link href="https://jefimenko.github.io/setting-up-a-spark-220-cluster.html" rel="alternate"></link><published>2017-11-17T00:00:00-08:00</published><updated>2017-11-17T00:00:00-08:00</updated><author><name>mat lee</name></author><id>tag:jefimenko.github.io,2017-11-17:/setting-up-a-spark-220-cluster.html</id><summary type="html">&lt;p&gt;This guide is for setting up &lt;code&gt;Spark 2.2.0&lt;/code&gt; on AWS EC2.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Spark 2.2.0 requires Java 8.X&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1&gt;[Setting Up the Spark Cluster]&lt;/h1&gt;
+&lt;h1&gt;[Spark Master]&lt;/h1&gt;
+&lt;h1&gt;Download and install Spark&lt;/h1&gt;
+&lt;p&gt;https://spark.apache.org/downloads.html&lt;/p&gt;
+&lt;p&gt;Then unpack and move the directory to your desired location.&lt;/p&gt;
+&lt;p&gt;In the …&lt;/p&gt;</summary><content type="html">&lt;p&gt;This guide is for setting up &lt;code&gt;Spark 2.2.0&lt;/code&gt; on AWS EC2.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Spark 2.2.0 requires Java 8.X&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1&gt;[Setting Up the Spark Cluster]&lt;/h1&gt;
+&lt;h1&gt;[Spark Master]&lt;/h1&gt;
+&lt;h1&gt;Download and install Spark&lt;/h1&gt;
+&lt;p&gt;https://spark.apache.org/downloads.html&lt;/p&gt;
+&lt;p&gt;Then unpack and move the directory to your desired location.&lt;/p&gt;
+&lt;p&gt;In the ec2-user bash profile (/home/ec2-user/.bashrc), add the following:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;export SPARK_HOME=&amp;lt;absolute path the installation of spark&amp;gt;
+
+if [ -z $PATH ]
+then
+    export PATH=&amp;lt;$SPARK_HOME/python&amp;gt;:&amp;lt;$SPARK_HOME/python/lib&amp;gt;
+else
+    export PATH=$PATH:&amp;lt;$SPARK_HOME/python&amp;gt;:&amp;lt;$SPARK_HOME/python/lib&amp;gt;
+fi
+
+export AWS_ACCESS_KEY_ID=&amp;lt;your access key id&amp;gt;
+export AWS_SECRET_ACCESS_KEY=&amp;lt;your secret access key&amp;gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;where you replace all &lt;code&gt;&amp;lt;&amp;gt;&lt;/code&gt; entries with actual values.
+We also recommend you create &lt;code&gt;spark-defaults.conf&lt;/code&gt; and &lt;code&gt;hive-site.xml&lt;/code&gt; configuration
+files in the &lt;code&gt;$SPARK_HOME/conf/&lt;/code&gt; directory.&lt;/p&gt;
+&lt;p&gt;You will also need to add specify .jar files in order to use Derby (to create
+DataFrames) and to read/write from S3.&lt;/p&gt;
+&lt;h1&gt;For Derby&lt;/h1&gt;
+&lt;p&gt;You can use .jar files in the lib dir in your Derby installation (see section
+for Derby installation).&lt;/p&gt;
+&lt;h1&gt;For S3&lt;/h1&gt;
+&lt;p&gt;You can download the sdk .jar from:&lt;/p&gt;
+&lt;p&gt;https://aws.amazon.com/sdk-for-java/&lt;/p&gt;
+&lt;p&gt;Once you've created &lt;code&gt;spark-defaults.conf&lt;/code&gt;, add:&lt;/p&gt;
+&lt;p&gt;spark.driver.extraClassPath      &lt;path to dir with jars&gt;/&lt;em&gt;:&lt;path to derby installation&gt;/lib/&lt;/em&gt;
+spark.executor.extraClassPath    &lt;path to dir with jars&gt;/&lt;em&gt;:&lt;path to derby installation&gt;/lib/&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;if you've placed all .jar files in a single directory, otherwise, add as many entries
+as needed.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;You can add explicit file paths for each .jar, but the config file supports &lt;code&gt;*&lt;/code&gt;
+expansion and will include all .jar files in the specified directory (though not
+recursively).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Create &lt;code&gt;hive-site.xml&lt;/code&gt; which should look like:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;This is sets Spark to use an external rather than embedded Derby server
+when it creates DataFrames. If you do not have a &lt;code&gt;hive-site.xml&lt;/code&gt; file,
+Spark will default to running an embedded Derby server when DataFrames
+are created.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="cp"&gt;&amp;lt;?xml version=&amp;quot;1.0&amp;quot;?&amp;gt;&lt;/span&gt;
+&lt;span class="cp"&gt;&amp;lt;?xml-stylesheet type=&amp;quot;text/xsl&amp;quot; href=&amp;quot;configuration.xsl&amp;quot;?&amp;gt;&lt;/span&gt;
+&lt;span class="nt"&gt;&amp;lt;configuration&amp;gt;&lt;/span&gt;
+    &lt;span class="nt"&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+        &lt;span class="nt"&gt;&amp;lt;name&amp;gt;&lt;/span&gt;javax.jdo.option.ConnectionURL&lt;span class="nt"&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+        &lt;span class="nt"&gt;&amp;lt;value&amp;gt;&lt;/span&gt;jdbc:derby://&lt;span class="nt"&gt;&amp;lt;derby&lt;/span&gt; &lt;span class="err"&gt;network&lt;/span&gt; &lt;span class="err"&gt;server&lt;/span&gt; &lt;span class="err"&gt;host&lt;/span&gt;&lt;span class="nt"&gt;&amp;gt;&lt;/span&gt;:1527/metastore_db;create=true&lt;span class="nt"&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+        &lt;span class="nt"&gt;&amp;lt;description&amp;gt;&lt;/span&gt;JDBC connect string for a JDBC metastore&lt;span class="nt"&gt;&amp;lt;/description&amp;gt;&lt;/span&gt;
+    &lt;span class="nt"&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+
+    &lt;span class="nt"&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+        &lt;span class="nt"&gt;&amp;lt;name&amp;gt;&lt;/span&gt;javax.jdo.option.ConnectionDriverName&lt;span class="nt"&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+        &lt;span class="nt"&gt;&amp;lt;value&amp;gt;&lt;/span&gt;org.apache.derby.jdbc.ClientDriver&lt;span class="nt"&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+        &lt;span class="nt"&gt;&amp;lt;description&amp;gt;&lt;/span&gt;Driver class name for a JDBC metastore&lt;span class="nt"&gt;&amp;lt;/description&amp;gt;&lt;/span&gt;
+    &lt;span class="nt"&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+&lt;span class="nt"&gt;&amp;lt;/configuration&amp;gt;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Replace &lt;code&gt;&amp;lt;derby network server host&amp;gt;&lt;/code&gt; with the appropriate value (&lt;code&gt;localhost&lt;/code&gt;)
+for the an instance running on the same server as the driver server (see below setup).&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Additional configuration for Google Cloud Storage can also be added to the
+&lt;code&gt;hive-site.xml&lt;/code&gt; file.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1&gt;Start up&lt;/h1&gt;
+&lt;p&gt;We use the &lt;code&gt;rc.local&lt;/code&gt; script that runs on startup as an entry point (to load ec2-user's
+profile script, and then execute a Python script as ec2-user starting and orphaning
+subprocesses as needed)&lt;/p&gt;
+&lt;p&gt;[1] Get private IP address of current server (if the current server is to be the master)
+[2] Start master process&lt;/p&gt;
+&lt;p&gt;[Spark Slave]&lt;/p&gt;
+&lt;h1&gt;Download and install Spark&lt;/h1&gt;
+&lt;h1&gt;Start up&lt;/h1&gt;
+&lt;p&gt;[1] Get the private IP Address of the master server
+[2] Get the processor count of the current slave server
+[3] Start the process with the specified master IP and core count&lt;/p&gt;
+&lt;h1&gt;[AWS EC2 Security Groups]&lt;/h1&gt;
+&lt;p&gt;The respective security group(s) for Master and Slave servers need to have access on
+all ports to each other (worker processes on slaves will connect to the master
+server on a random high number port).&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;This is simplest if your entire cluster is in a single region (i.e. 'us-west-2'), as
+multi-region clusters will not only suffer from increased latency, but also will require
+you to generate ingress rules based on public IP addresses, rather than security groups.
+The start up processes will also need to change (from using private IP addresses to
+public).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h1&gt;[Driver Server Config]&lt;/h1&gt;
+&lt;p&gt;If you are using a server that is in your cluster, you will also have install and
+configure Spark on that server. Oddly enough, paths to .jar dependencies on the 
+cluster machines are actually specified by configuration in the the driver server
+(the server actually running the client code for your Spark application).&lt;/p&gt;
+&lt;p&gt;It is also recommended to install Derby and have it running in network server mode
+on your driver server (this is used to store metadata about DataFrames in Spark,
+which is managed by the driver application). If Spark is not configured to use an
+external Derby Network Server, it will by default start an embedded instance.
+This will, however, prevent any other process on a server from being able to use
+DataFrames while application code is running.&lt;/p&gt;
+&lt;h1&gt;[Installing Derby]&lt;/h1&gt;
+&lt;h1&gt;Download and install Derby 10.14.1.1&lt;/h1&gt;
+&lt;p&gt;https://db.apache.org/derby/releases/release-10.14.1.0.cgi&lt;/p&gt;
+&lt;p&gt;Then unpack and move the directory to your desired location.&lt;/p&gt;
+&lt;h1&gt;Add Java policy to allow Derby to bind to port 1527&lt;/h1&gt;
+&lt;p&gt;In your &lt;code&gt;$JAVA_HOME\jre/lib/security/java.policy&lt;/code&gt; (where `$JAVA_HOME is the location of your Java installation),
+add:&lt;/p&gt;
+&lt;p&gt;grant {
+        permission java.net.SocketPermission "&lt;host&gt;:1527", "listen";
+};&lt;/p&gt;
+&lt;p&gt;where &lt;host&gt; is replaced with the appropriate value (localhost if you intend to
+run Derby Network Server on the same server as the Spark driver application).&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The Derby Network Server needs to have started before the driver server can create
+DataFrames. The driver server will also need to have access to the Derby Network
+Server (no additional configuration needed if the Derby Network Server is running
+locally, which we recommend). Overhead for running Derby Network Server is trivial.&lt;/li&gt;
+&lt;/ul&gt;</content></entry></feed>
