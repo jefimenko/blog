@@ -1,3 +1,7 @@
+Title: Setting Up a Spark 2.2.0 Cluster
+Date: 2017-11-17
+Category: Howto
+
 This guide is for setting up `Spark 2.2.0` on AWS EC2.
 
 * Spark 2.2.0 requires Java 8.X
